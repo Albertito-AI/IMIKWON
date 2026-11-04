@@ -39,7 +39,7 @@ def load_proposal(name):
 
 def demo():
     with tempfile.TemporaryDirectory(prefix="imikwon-demo-") as temp:
-        root = Path(temp)
+        root = Path(temp).resolve()
         before = "def add(a, b):\n    return a - b\n"
         (root / "calc.py").write_bytes(before.encode())
         (root / "test_calc.py").write_bytes(b"import unittest\nfrom calc import add\nclass TestAdd(unittest.TestCase):\n    def test_add(self):\n        self.assertEqual(add(2, 3), 5)\n")

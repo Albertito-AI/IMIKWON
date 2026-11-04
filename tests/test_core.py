@@ -184,9 +184,20 @@ class CoreTests(unittest.TestCase):
 
     def test_demo_end_to_end(self):
         with contextlib.redirect_stdout(io.StringIO()) as stream:
-            self.assertEqual(main(["demo"]), 0)
+            result = main(["demo"])
+        self.assertEqual(result, 0, stream.getvalue())
         self.assertIn("Before: failed", stream.getvalue())
         self.assertIn("After: passed", stream.getvalue())
+
+    @unittest.skipIf(os.name == "nt", "symlink privileges vary on Windows")
+    def test_demo_canonicalises_temporary_directory(self):
+        alias = self.root / "alias"
+        target = self.root / "actual"
+        target.mkdir()
+        alias.symlink_to(target, target_is_directory=True)
+        with patch.object(tempfile, "tempdir", str(alias)), contextlib.redirect_stdout(io.StringIO()) as stream:
+            result = main(["demo"])
+        self.assertEqual(result, 0, stream.getvalue())
 
 
 class BudgetTests(unittest.TestCase):

@@ -4,7 +4,7 @@ Checked locally on 5 November 2026 (Singapore), Python 3.12.14 on Linux.
 
 | Check | Result |
 | --- | --- |
-| `python -m unittest discover -s tests -v` | 31 tests passed at initial validation. See CI for the exact release revision. |
+| `python -m unittest discover -s tests -v` | 32 tests passed locally, including canonical temporary paths. See CI for the exact release revision. |
 | `python -m imikwon demo` | Synthetic test failed before application and passed afterwards. No API used. |
 | Documented Kimi request shape | Mocked HTTP transport verifies model, output cap, schema and preserved reasoning. |
 | Scope and write guards | Tests cover traversal, symlinks, hardlinks, credential patterns, binary/large files, duplicate paths, stale context and rollback after a simulated write failure. |
