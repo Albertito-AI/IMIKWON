@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "imikwon"
+version = "0.1.0a1"
+description = "Kimi coding with focused context, visible costs and reviewable changes"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Albert Tan Sin Hon"}]
+dependencies = []
+
+[project.scripts]
+imikwon = "imikwon.cli:main"
+
+[project.urls]
+Repository = "https://github.com/Albertito-AI/IMIKWON"
+Homepage = "https://www.alberttansinhon.com/imikwon/"
+Issues = "https://github.com/Albertito-AI/IMIKWON/issues"
+
+[tool.setuptools.packages.find]
+include = ["imikwon*"]
