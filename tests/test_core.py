@@ -68,6 +68,55 @@ class CoreTests(unittest.TestCase):
         core.apply_proposal(self.root, p)
         self.assertIn("return a + b", (self.root / "calc.py").read_text())
 
+    def test_diff_reports_missing_final_newlines(self):
+        cases = (
+            ("old", "new", "-old\n\\ No newline at end of file\n+new\n\\ No newline at end of file\n"),
+            ("old", "new\n", "-old\n\\ No newline at end of file\n+new\n"),
+            ("old\n", "new", "-old\n+new\n\\ No newline at end of file\n"),
+            ("old\n", "new\n", "-old\n+new\n"),
+        )
+        for before, after, expected in cases:
+            with self.subTest(before=before, after=after):
+                (self.root / "calc.py").write_bytes(before.encode())
+                p = self.proposal(client=FakeClient([answer(after), answer(after)]))
+                self.assertEqual(core.preview(self.root, p), "--- a/calc.py\n+++ b/calc.py\n@@ -1 +1 @@\n" + expected)
+                self.assertEqual((self.root / "calc.py").read_bytes(), before.encode())
+
+    def test_diff_separates_files_without_final_newlines(self):
+        (self.root / "calc.py").write_bytes(b"old")
+        (self.root / "second.py").write_bytes(b"before")
+        a = answer("new")
+        a["changes"].append({"path": "second.py", "content": "after"})
+        p = self.proposal(["calc.py", "second.py"], FakeClient([a, a]))
+        diff = core.preview(self.root, p)
+        self.assertIn("+new\n\\ No newline at end of file\n--- a/second.py\n", diff)
+        self.assertEqual(diff.count("\\ No newline at end of file\n"), 4)
+
+    def test_diff_reports_missing_newline_in_new_file(self):
+        a = {"summary": "New", "changes": [{"path": "new.py", "content": "new"}], "tests": [], "risks": []}
+        p = self.proposal(["new.py"], FakeClient([a, a]))
+        self.assertEqual(core.preview(self.root, p), "--- a/new.py\n+++ b/new.py\n@@ -0,0 +1 @@\n+new\n\\ No newline at end of file\n")
+        self.assertFalse((self.root / "new.py").exists())
+
+    def test_diff_reports_missing_newline_in_context(self):
+        (self.root / "calc.py").write_bytes(b"old\ncontext")
+        p = self.proposal(client=FakeClient([answer("new\ncontext"), answer("new\ncontext")]))
+        self.assertEqual(core.preview(self.root, p), "--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n-old\n+new\n context\n\\ No newline at end of file\n")
+
+    def test_diff_uses_lf_records_without_splitting_other_separators(self):
+        for separator in ("\r", "\v", "\f", "\x1c", "\x85", "\u2028", "\u2029"):
+            with self.subTest(separator=repr(separator)):
+                before, after = "old" + separator + "context\n", "new" + separator + "context\n"
+                (self.root / "calc.py").write_bytes(before.encode())
+                p = self.proposal(client=FakeClient([answer(after), answer(after)]))
+                self.assertEqual(core.preview(self.root, p), "--- a/calc.py\n+++ b/calc.py\n@@ -1 +1 @@\n-" + before + "+" + after)
+
+    def test_diff_retains_crlf_without_missing_newline_markers(self):
+        (self.root / "calc.py").write_bytes(b"old\r\ncontext\r\n")
+        after = "new\r\ncontext\r\n"
+        p = self.proposal(client=FakeClient([answer(after), answer(after)]))
+        self.assertEqual(core.preview(self.root, p), "--- a/calc.py\n+++ b/calc.py\n@@ -1,2 +1,2 @@\n-old\r\n+new\r\n context\r\n")
+
     def test_stale_file_refused(self):
         p = self.proposal()
         (self.root / "calc.py").write_text("user edit")

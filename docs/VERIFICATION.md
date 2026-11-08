@@ -16,6 +16,23 @@ Checked locally on 5 November 2026 (Singapore), Python 3.12.14 on Linux.
 
 The public Actions workflow runs tests, the offline demo and installation on Linux, Windows and macOS with Python 3.10 and 3.12. A workflow definition is not a passing run; inspect [Actions](https://github.com/Albertito-AI/IMIKWON/actions) for current results.
 
+## Diff-preview correction, 8 November 2026
+
+Files without a final newline previously joined removed and added lines together
+in the preview, for example `-old+new`. They could also join the next file's
+header. The preview now separates each record and marks the missing final
+newline explicitly. File contents and apply behaviour are unchanged.
+
+Four initial regression tests cover old and new final-newline combinations,
+multiple files, creation and unchanged context. The original implementation
+failed six assertions across these tests. Separate AI review identified that
+diff records must split on LF only; two further tests cover lone CR, Unicode
+separators and CRLF without false missing-newline markers. After the correction,
+all 38 tests passed locally on Python 3.12.14 / Linux, and the offline demo still
+failed before its fixture fix and passed afterwards. No provider was contacted.
+Hosted matrix results remain separate evidence in the associated pull request
+and Actions records.
+
 ## Next acceptance evidence
 
 A live tester should use a disposable project and their own key, record provider/model/date, configured rates, task specification, source revision, proposal, local test results and actual token usage. Remove secrets and private code before sharing. Include failed tasks and all billed attempts when calculating cost per success. A model self-review must not be counted as an independent review.
