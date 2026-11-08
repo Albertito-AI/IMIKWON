@@ -38,3 +38,19 @@ and Actions records.
 A live tester should use a disposable project and their own key, record provider/model/date, configured rates, task specification, source revision, proposal, local test results and actual token usage. Remove secrets and private code before sharing. Include failed tasks and all billed attempts when calculating cost per success. A model self-review must not be counted as an independent review.
 
 The initial live smoke task should change `add(a, b)` from subtraction to addition and add tests for zero and negative arguments. Then test a small bug in a real project with a pre-existing failing test. No claimed success rate should be published until tasks, evaluation rules and outcomes can be inspected.
+
+## Malformed-provider response correction, 8 November 2026
+
+Null or scalar choices and messages could previously escape response validation
+as an unhandled `AttributeError`. These shapes now produce a controlled error.
+The existing reservation and returned usage remain recorded, with no retry,
+saved proposal or source edits. A valid assistant message remains intact for
+the subsequent model-review call.
+
+Two mocked-HTTP regression tests cover malformed nested response types and the
+complete CLI failure path, including its saved cost record. The original code
+produced nine errors across those cases. After integrating the prior diff-preview
+correction, all 40 tests passed locally on Python 3.12.14 / Linux against base
+`a3dba4b1c763416801d5fbf0f35e9c524cce21f4` plus this correction; the offline
+demo also passed. No live provider was contacted. Hosted checks are recorded in
+the associated pull request.
