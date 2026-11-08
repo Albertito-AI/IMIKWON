@@ -297,6 +297,44 @@ class BudgetTests(unittest.TestCase):
             with self.assertRaises(core.Problem):
                 core.Client("dummy-key").complete([], core.Budget(1, 6, 15))
 
+    def test_malformed_reply_preserves_reservation_and_usage_without_retry(self):
+        malformed_choices = [None, "invalid", {}, [], [None], ["invalid"], [42]]
+        malformed_choices += [[{"finish_reason": "stop", "message": message}] for message in (None, "invalid", [], 42)]
+        for choices in malformed_choices:
+            with self.subTest(choices=choices):
+                usage = {"prompt_tokens": 120, "completion_tokens": 90}
+                response = {"choices": choices, "usage": usage}
+                budget = core.Budget(1, 6, 15)
+                with patch.object(core, "build_opener") as opener:
+                    opener.return_value.open.return_value = io.BytesIO(json.dumps(response).encode())
+                    with self.assertRaises(core.Problem):
+                        core.Client("dummy-key").complete([], budget)
+                    self.assertEqual(opener.return_value.open.call_count, 1)
+                self.assertGreater(budget.reserved, 0)
+                self.assertEqual(len(budget.calls), 1)
+                self.assertEqual(budget.calls[0]["provider_usage"], usage)
+
+    def test_cli_records_cost_without_saving_malformed_proposal(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp).resolve()
+            source = b"original source\n"
+            (root / "calc.py").write_bytes(source)
+            response = {"choices": [{"finish_reason": "stop", "message": None}]}
+            with patch.dict(os.environ, {"MOONSHOT_API_KEY": "dummy-key"}), patch.object(core, "build_opener") as opener, contextlib.redirect_stdout(io.StringIO()) as output:
+                opener.return_value.open.return_value = io.BytesIO(json.dumps(response).encode())
+                code = main(["--root", str(root), "propose", "Fix calculation", "--file", "calc.py", "--input-ceiling", "6", "--output-price", "15", "--budget", "1"])
+                self.assertEqual(opener.return_value.open.call_count, 1)
+            self.assertEqual(code, 2, output.getvalue())
+            self.assertIn("IMIKWON: Provider", output.getvalue())
+            self.assertEqual((root / "calc.py").read_bytes(), source)
+            self.assertEqual(list((root / ".imikwon").glob("*.proposal.json")), [])
+            records = list((root / ".imikwon").glob("*.cost.json"))
+            self.assertEqual(len(records), 1)
+            cost = json.loads(records[0].read_text())
+            self.assertGreater(cost["reserved_usd"], 0)
+            self.assertEqual(len(cost["calls"]), 1)
+            self.assertEqual(cost["calls"][0]["provider_usage"], {})
+
     def test_redirect_refused(self):
         with self.assertRaises(core.Problem):
             core.NoRedirect().redirect_request(None, None, 302, "", {}, "https://elsewhere.example")

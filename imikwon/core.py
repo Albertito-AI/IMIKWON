@@ -164,16 +164,18 @@ class Client:
         if not isinstance(result, dict):
             raise Problem("Provider response must be a JSON object.")
         budget.record(reserve, result.get("usage", {}))
-        try:
-            choice = result["choices"][0]
-            if choice.get("finish_reason") != "stop":
-                raise Problem("Provider did not complete the proposal. No partial edits will be used.")
-            message = choice["message"]
-            if message.get("role") != "assistant" or message.get("tool_calls") or message.get("refusal") or not isinstance(message.get("content"), str):
-                raise Problem("Provider returned an unsupported or refused response.")
-            return message
-        except (KeyError, IndexError, TypeError):
-            raise Problem("Provider response is missing a completed assistant message.") from None
+        choices = result.get("choices")
+        if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+            raise Problem("Provider response is missing a completed assistant message.")
+        choice = choices[0]
+        if choice.get("finish_reason") != "stop":
+            raise Problem("Provider did not complete the proposal. No partial edits will be used.")
+        message = choice.get("message")
+        if not isinstance(message, dict):
+            raise Problem("Provider response is missing a completed assistant message.")
+        if message.get("role") != "assistant" or message.get("tool_calls") or message.get("refusal") or not isinstance(message.get("content"), str):
+            raise Problem("Provider returned an unsupported or refused response.")
+        return message
 
 
 SCHEMA = {"type": "object", "properties": {"summary": {"type": "string"}, "changes": {"type": "array", "items": {"type": "object", "properties": {"path": {"type": "string"}, "content": {"type": "string"}}, "required": ["path", "content"], "additionalProperties": False}}, "tests": {"type": "array", "items": {"type": "string"}}, "risks": {"type": "array", "items": {"type": "string"}}}, "required": ["summary", "changes", "tests", "risks"], "additionalProperties": False}
