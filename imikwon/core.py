@@ -248,9 +248,20 @@ def validate_proposal(root, proposal):
 def preview(root, proposal):
     files = validate_proposal(root, proposal)
     output = []
+    def lf_lines(content):
+        # Unified diffs count LF-terminated records. Lone CR and Unicode line
+        # separators remain file content, rather than extra diff records.
+        parts = content.split("\n")
+        return [part + "\n" for part in parts[:-1]] + ([parts[-1]] if parts[-1] else [])
     for change in proposal["changes"]:
         name = change["path"]
-        output.extend(difflib.unified_diff(files[name]["content"].splitlines(keepends=True), change["content"].splitlines(keepends=True), fromfile="a/" + name, tofile="b/" + name))
+        lines = difflib.unified_diff(lf_lines(files[name]["content"]), lf_lines(change["content"]), fromfile="a/" + name, tofile="b/" + name)
+        for line in lines:
+            output.append(line)
+            if not line.endswith("\n"):
+                # difflib retains a source line's missing terminator. Keep the
+                # next diff record separate without hiding the original EOF.
+                output.append("\n\\ No newline at end of file\n")
     return "".join(output)
 
 
