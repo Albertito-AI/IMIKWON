@@ -1,0 +1,20 @@
+{
+  "title": "IMIKWON",
+  "description": "Open-source coding with Kimi K3.1 Pro. Focused context, visible costs, reviewable changes, and local test evidence. MIT licensed. This deposit preserves a dated source snapshot of the implementation and documentation, with the limitations stated in the repository.",
+  "creators": [
+    {
+      "name": "Tan, Sin Hon Albert",
+      "orcid": "0009-0001-8996-7933"
+    }
+  ],
+  "upload_type": "software",
+  "access_right": "open",
+  "license": "MIT",
+  "notes": "undefined Archival publication does not establish peer review, independent validation or production readiness.",
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/Albertito-AI/IMIKWON",
+      "relation": "isSupplementTo"
+    }
+  ]
+}
